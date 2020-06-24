@@ -13,7 +13,8 @@
     "Ember Plus",
     "Studio",
     "Automation",
-    "Broadcast"
+    "Broadcast",
+    "node-red"
   ],
   "license": "GPL-3.0-or-later",
   "dependencies": {
