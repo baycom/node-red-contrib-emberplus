@@ -1,0 +1,66 @@
+<script type="text/javascript">
+    RED.nodes.registerType('ember+',{
+        category: 'Ember Plus',
+        color: '#a6bbcf',
+        defaults: {
+            name: {value:""},
+            server: {value:"", type:"emberplus-server"},
+            path: {value: "", required: false},
+        },
+        inputs:1,
+        outputs:1,
+        icon: "ember-plus-logo-60w.png",
+        label: function() {
+            return this.name||"ember+";
+        },
+        oneditprepare(a) {
+            const self = this;
+            try {
+                $('#node-input-path').autocomplete('destroy');
+            } catch (err) { }
+
+            $('#node-lookup-path').click(() => {
+                $('#node-lookup-path-icon').removeClass('fa-search');
+                $('#node-lookup-path-icon').addClass('spinner');
+                $('#node-lookup-path').addClass('disabled');
+                $.getJSON('/emberplus/'+this.server+'/paths', data => {
+                    $('#node-lookup-path-icon').addClass('fa-search');
+                    $('#node-lookup-path-icon').removeClass('spinner');
+                    $('#node-lookup-path').removeClass('disabled');
+                    const paths = [];
+                    $.each(data, (i, path) => {
+                        console.log("paths: " + i + " path:" + JSON.stringify(path));
+                        paths.push(path.id);
+                    });
+                    $('#node-input-path').autocomplete({
+                        source: paths,
+                        minLength: 0,
+                        close(event, ui) {
+                            $('#node-input-path').autocomplete('destroy');
+                        }
+                    }).autocomplete('search', '');
+                });
+            });
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="ember+">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-server"><i class="fa fa-tasks"></i> Ember+ Server</label>
+        <input type="text" id="node-input-server">
+    </div>
+    <div class="form-row">
+        <label for="node-input-path"><i class="fa fa-random"></i> path</label>
+        <input type="text" id="node-input-path" style="width:60%;" placeholder="e.g. 0.1.0"/>
+        <a id="node-lookup-path" class="btn"><i id="node-lookup-path-icon" class="fa fa-search"></i></a>
+    </div>
+</script>
+
+<script type="text/html" data-help-name="ember+">
+    <p>A node that sends or receives Ember+ states.</p>
+</script>
