@@ -23,7 +23,7 @@
                 $('#node-lookup-path-icon').removeClass('fa-search');
                 $('#node-lookup-path-icon').addClass('spinner');
                 $('#node-lookup-path').addClass('disabled');
-                $.getJSON('/emberplus/'+this.server+'/paths', data => {
+                $.getJSON('emberplus/'+this.server+'/paths', data => {
                     $('#node-lookup-path-icon').addClass('fa-search');
                     $('#node-lookup-path-icon').removeClass('spinner');
                     $('#node-lookup-path').removeClass('disabled');
