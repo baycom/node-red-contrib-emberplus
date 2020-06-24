@@ -13,6 +13,7 @@ module.exports = function (RED) {
                 this.port = n.port;
                 this.name = n.name;
                 var node = this;
+                node.shutdown = false;
 
                 //Send a message to the subscribed nodes (appears on the flow)
                 node.sendStatus = function (colour, message, extraInformation = "") {
@@ -32,7 +33,11 @@ module.exports = function (RED) {
                         }
                 }
                 function reconnect(host, port) {
+                        if (node.client) {
+                                delete node.client;
+                        }
                         var client = new EmberClient(node.host, node.port);
+                        node.client = client;
                         client.on("error", function (e) {
                                 node.sendStatus("red", "Error", e)
                         })
@@ -70,14 +75,20 @@ module.exports = function (RED) {
                                                 }
                                         })
                                         )
-                                        .then(() => { global.paths = paths; node.paths = paths; node.emit("clientready", node.paths, client); })
+                                        .then(() => {
+                                                global.paths = paths; node.paths = paths;
+                                                node.sendStatus("green", "Connected");
+                                                node.emit("clientready", node.paths, client);
+                                        })
                                         .catch((e) => {
                                                 console.log(e.stack);
                                         })
                         });
                         client.on("disconnected", function () {
                                 node.sendStatus("red", "Disconnected");
-                                reconnect();
+                                if (!node.shutdown) {
+                                        reconnect();
+                                }
                         });
                         client.connect()
                                 .catch((e) => {
@@ -86,8 +97,10 @@ module.exports = function (RED) {
                 }
                 //On redeploy
                 node.on("close", function () {
+                        node.shutdown = true;
                         node.client.disconnect();
                 });
+
                 reconnect(node.host, node.port);
         }
         RED.httpAdmin.get('/emberplus/:node/paths', RED.auth.needsPermission('emberplus.read'), (req, res) => {
