@@ -109,8 +109,10 @@ module.exports = function (RED) {
                         if (node.paths.length) {
                                 res.status(200).send(JSON.stringify(node.paths));
                         } else {
-                                res.status(401).send(`401 Internal Server Error: no path data yet`);
+                                res.status(401).send(`401 Not found: no path data yet`);
                         }
+                } else {
+                        res.status(401).send(`401 Invalid node id`);
                 }
         });
         RED.nodes.registerType("emberplus-server", EmberPlusServerNode);
