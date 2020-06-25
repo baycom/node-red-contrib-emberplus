@@ -12,7 +12,7 @@ The input pin of the node takes two types of message payloads:
 - msg.payload takes the plain value to be set to the specified path. Example: 
 ```
 true
-````
+```
 - msg.raw contains path and value to the specified node. Example:
 ```
 {"path":"0.2.0","value":true}
