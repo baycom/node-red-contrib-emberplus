@@ -1,18 +1,19 @@
 <script type="text/javascript">
-    RED.nodes.registerType('ember+',{
+    RED.nodes.registerType('ember+', {
         category: 'Ember Plus',
         color: '#a6bbcf',
         defaults: {
-            name: {value:""},
-            server: {value:"", type:"emberplus-server"},
-            path: {value: "", required: false},
-            outputMode: {value: "value", required: true}
+            name: { value: "" },
+            server: { value: "", type: "emberplus-server" },
+            path: { value: "", required: false },
+            read: { value: true, required: false },
+            outputMode: { value: "value", required: true }
         },
-        inputs:1,
-        outputs:1,
+        inputs: 1,
+        outputs: 1,
         icon: "ember-plus-logo-60w.png",
-        label: function() {
-            return this.name||this.path||"ember+";
+        label: function () {
+            return this.name || this.path || "ember+";
         },
         oneditprepare(a) {
             const self = this;
@@ -24,7 +25,7 @@
                 $('#node-lookup-path-icon').removeClass('fa-search');
                 $('#node-lookup-path-icon').addClass('spinner');
                 $('#node-lookup-path').addClass('disabled');
-                $.getJSON('emberplus/'+this.server+'/paths', data => {
+                $.getJSON('emberplus/' + this.server + '/paths', data => {
                     $('#node-lookup-path-icon').addClass('fa-search');
                     $('#node-lookup-path-icon').removeClass('spinner');
                     $('#node-lookup-path').removeClass('disabled');
@@ -60,7 +61,8 @@
         <input type="text" id="node-input-path" style="width:60%;" placeholder="e.g. 0.1.0"/>
         <a id="node-lookup-path" class="btn"><i id="node-lookup-path-icon" class="fa fa-search"></i></a>
     </div>
-    <div class="form-row">
+    </div>
+        <div class="form-row">
         <label for="node-input-outputMode"><i class="icon-tag"></i> Output Mode:</label>
         <select id="node-input-outputMode">
             <option value=""></option>
@@ -68,6 +70,11 @@
             <option value="contents">Output contents object</option>
             <option value="full">Output full object</option>
         </select>
+    </div>
+    <div class="form-row">
+        <label>&nbsp;</label>
+        <input type="checkbox" id="node-input-read" style="display:inline-block; width:auto; vertical-align:top;">
+        <label for="node-input-read" style="width:70%;"><i class="icon-tag"></i> Read initial vale of path on deploy/restart?</label>
     </div>
 </script>
 

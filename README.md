@@ -23,6 +23,7 @@ The data format of the output pin can be configured:
 - plain: msg.payload contains the plain value from the Ember+ object
 - contents: msg.payload.contents contains the contents Ember+ object from the underlying node-emberplus client 
 - full: msg.payload.full contains the full Ember+ object from the underlying node-emberplus (including the device path)
+If needed the inital state may be sent by clicking a corresponding checkbox.
 
 ## To Be Done
 

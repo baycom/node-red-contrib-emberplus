@@ -1,9 +1,11 @@
 const util = require('util');
+var AsyncLock = require('async-lock');
 
 module.exports = function (RED) {
 
     function EmberPlusNode(config) {
         RED.nodes.createNode(this, config);
+        var lock = new AsyncLock();
         var node = this;
         var path = config.path.substring(0, config.path.indexOf(':'));
         node.client = null;
@@ -18,34 +20,42 @@ module.exports = function (RED) {
                     node.error(extraInformation);
                 }
             });
+            function send(update) {
+                var msg = { 'payload': null };
+                if (config.outputMode == 'full') {
+                    msg.payload = { 'full': update };
+                } else if (config.outputMode == 'contents') {
+                    msg.payload = { 'contents': update.contents };
+                } else {
+                    msg.payload = update.contents.value;
+                }
+                node.send(msg);
+            }
             server.on("clientready", function (paths, client) {
                 node.client = client;
                 if (path) {
-                    client.getElementByPath(path, update => {
-                        var msg = { 'payload': null };
-                        if (config.outputMode == 'full') {
-                            msg.payload = { 'full': update };
-                        } else if (config.outputMode == 'contents') {
-                            msg.payload = { 'contents': update.contents };
-                        } else {
-                            msg.payload = update.contents.value;
-                        }
-                        node.send(msg);
-                    });
+                    if (config.read) {
+                        send(client.root.getElementByPath(path));
+                    }
+                    client.getElementByPath(path, update => send(update))
+                        .catch((e) => {
+                            node.warn(e.stack);
+                            console.log(e.stack);
+                        });
                 }
             });
         } else {
             // No config node configured
         }
-
         node.on('input', function (msg) {
             var payload = msg.payload;
-            node.client.getElementByPath((payload.full != undefined && payload.full.path != undefined) ? payload.full.path : path)
-                .then((path) => {
-                    if (node.client) {
-                        node.client.setValue(path, (payload.full != undefined && payload.full.value != undefined) ? payload.full.value : payload);
-                    }
-                }).catch((e) => { console.log(e.stack); });
+            lock.acquire("setValue", function (done) {
+                var p = (payload.full != undefined && payload.full.path != undefined) ? payload.full.path : path;
+                var v = (payload.full != undefined && payload.full.value != undefined) ? payload.full.value : payload;
+                node.client.getElementByPath(p)
+                    .then((p) => node.client.setValue(p, v))
+                    .then(() => done())
+            });
         });
     }
     RED.nodes.registerType("ember+", EmberPlusNode);

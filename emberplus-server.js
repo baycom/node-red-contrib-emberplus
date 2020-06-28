@@ -40,7 +40,7 @@ module.exports = function (RED) {
                         node.client = client;
                         client.on("error", function (e) {
                                 node.sendStatus("red", "Error", e)
-                        })
+                        });
                         client.on("connecting", function () {
                                 node.sendStatus("yellow", "Connecting");
                         });
