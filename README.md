@@ -13,15 +13,16 @@ The input pin of the node takes two types of message payloads:
 ```
 true
 ```
-- msg.raw contains path and value to the specified node. Example:
+- msg.payload contains path and value to the specified node. Example:
 ```
-{"path":"0.2.0","value":true}
+{"full":{"path":"0.1.0","value":true}}
 ```
 
 ### Output Pin
-The output pin sends two objects:
-- msg.payload contains the plain value from the Ember+ object
-- msg.raw contains the whole Ember+ object from the underlying node-emberplus client 
+The data format of the output pin can be configured:
+- plain: msg.payload contains the plain value from the Ember+ object
+- contents: msg.payload.contents contains the contents Ember+ object from the underlying node-emberplus client 
+- full: msg.payload.contents contains the full Ember+ object from the underlying node-emberplus (including the device path)
 
 ## To Be Done
 

@@ -5,7 +5,7 @@ module.exports = function (RED) {
     function EmberPlusNode(config) {
         RED.nodes.createNode(this, config);
         var node = this;
-        var path=config.path.substring(0, config.path.indexOf(':'));
+        var path = config.path.substring(0, config.path.indexOf(':'));
         node.client = null;
 
         // Retrieve the config node
@@ -22,7 +22,14 @@ module.exports = function (RED) {
                 node.client = client;
                 if (path) {
                     client.getElementByPath(path, update => {
-                        var msg = { "payload": update.contents.value, "raw": update.contents };
+                        var msg = { 'payload': null };
+                        if (config.outputMode == 'full') {
+                            msg.payload = { 'full': update };
+                        } else if (config.outputMode == 'contents') {
+                            msg.payload = { 'contents': update.contents };
+                        } else {
+                            msg.payload = update.contents.value;
+                        }
                         node.send(msg);
                     });
                 }
@@ -32,10 +39,11 @@ module.exports = function (RED) {
         }
 
         node.on('input', function (msg) {
-            node.client.getElementByPath(msg.raw.path ? msg.raw.path : path)
-                .then((path) => { 
-                    if(node.client) {
-                        node.client.setValue(path, msg.payload?msg.payload:msg.raw.value);
+            var payload = msg.payload;
+            node.client.getElementByPath((payload.full != undefined && payload.full.path != undefined) ? payload.full.path : path)
+                .then((path) => {
+                    if (node.client) {
+                        node.client.setValue(path, (payload.full != undefined && payload.full.value != undefined) ? payload.full.value : payload);
                     }
                 }).catch((e) => { console.log(e.stack); });
         });
