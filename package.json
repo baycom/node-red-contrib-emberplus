@@ -18,9 +18,7 @@
   ],
   "license": "GPL-3.0-or-later",
   "dependencies": {
-    "async-lock": "^1.2.4",
-    "node-emberplus": "git+https://github.com/olzzon/node-emberplus.git",
-    "typescript": "^3.9.5"
+    "node-emberplus": "git+https://github.com/olzzon/node-emberplus.git"
   },
   "node-red": {
     "nodes": {
