@@ -1,11 +1,9 @@
 const util = require('util');
-var AsyncLock = require('async-lock');
 
 module.exports = function (RED) {
 
     function EmberPlusNode(config) {
         RED.nodes.createNode(this, config);
-        var lock = new AsyncLock();
         var node = this;
         var path = config.path.substring(0, config.path.indexOf(':'));
         node.client = null;
@@ -49,13 +47,16 @@ module.exports = function (RED) {
         }
         node.on('input', function (msg) {
             var payload = msg.payload;
-            lock.acquire("setValue", function (done) {
-                var p = (payload.full != undefined && payload.full.path != undefined) ? payload.full.path : path;
-                var v = (payload.full != undefined && payload.full.value != undefined) ? payload.full.value : payload;
-                node.client.getElementByPath(p)
-                    .then((p) => node.client.setValue(p, v))
-                    .then(() => done())
-            });
+            var p = (payload.full != undefined && payload.full.path != undefined) ? payload.full.path : path;
+            var v = (payload.full != undefined && payload.full.value != undefined) ? payload.full.value : payload;
+            if (node.client.root.getElementByPath(path) != v) {
+                    node.client.getElementByPath(p)
+                        .then((p) => node.client.setValueNoAck(p, v))
+                        .catch((e) => {
+                            node.warn(e.stack);
+                            console.log(e.stack);
+                        });
+            }
         });
     }
     RED.nodes.registerType("ember+", EmberPlusNode);
