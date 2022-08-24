@@ -1,17 +1,18 @@
 const { EmberClient, EmberLib } = require('node-emberplus');
-const util = require('util');
-const { emit } = require('process');
+
+const reconnectDelay = 30 * 1000;
 
 module.exports = function (RED) {
 
-        function EmberPlusServerNode(n) {
+        function EmberPlusServerNode(config) {
                 var statusCallbacks = [];
 
-                RED.nodes.createNode(this, n);
+                RED.nodes.createNode(this, config);
 
-                this.host = n.host;
-                this.port = n.port;
-                this.name = n.name;
+                this.host = config.host;
+                this.port = config.port;
+                this.name = config.name;
+                this.configPaths = config.paths ? config.paths.split(",") : [];
                 var node = this;
                 node.shutdown = false;
 
@@ -25,75 +26,86 @@ module.exports = function (RED) {
                 //Callback definitions
                 node.addStatusCallback = function (func) { statusCallbacks.push(func); }
 
-                //Send out a error
-                function sendError(errorNode, errorMessage) {
-                        if (lastSentError !== errorNode + ":" + errorMessage) {
-                                lastSentError = errorNode + ":" + errorMessage;
-                                node.sendStatus("red", errorNode, errorMessage);
+                function getFunctionDescriptor(func) {
+                        return (func.description ? func.description : 'function') + 
+                        'args:' + func.arguments ? func.arguments.map(arg => {
+                                const jarg = arg.toJSON();
+                                return `${jarg.name}/${jarg.type}`;
+                        }).join(",") : "";
+                }
+
+                /**
+                 * 
+                 * @param {EmberLib.Element} element 
+                 */
+                async function getEmberChildren(element) {
+                        if (element.isParameter()) {
+                                node.paths.push({ "path": element.path, "id": element.path + ":/" + element.identifier + "->" + (element.description ? element.description : element.value) });
+                        } else if (element.isFunction()) {
+                                node.paths.push({ "path": element.path, "id": element.path + ":/" + element.identifier + "->" + getFunctionDescriptor(element) });
+                        }
+                        const children = element.getChildren();
+                        if (children && children.length) {
+                                children.forEach(child => getEmberChildren(child));
                         }
                 }
-                function reconnect(host, port) {
+
+                async function getPath(path) {
+                        try {
+                                const element = await node.client.getElementByPathAsync(path);
+                                await node.client.expandAsync(element);
+                                await getEmberChildren(element);
+                        } catch(e) {
+                                console.log(e);
+                        }
+                }
+
+                async function getCompleteTree() {
+                        try {
+                                const element = await node.client.expandAsync();
+                                await getEmberChildren(node.client.root);
+                        } catch(e) {
+                                console.log(e);
+                        }
+                }
+
+                async function reconnect() {
                         if (node.client) {
                                 delete node.client;
                         }
                         var client = new EmberClient(node.host, node.port);
                         node.client = client;
-                        client.on("error", function (e) {
+                        node.paths = [];
+                        client.on("error", e => {
                                 node.sendStatus("red", "Error", e)
                         });
-                        client.on("connecting", function () {
+                        client.on("connecting", () => {
                                 node.sendStatus("yellow", "Connecting");
                         });
-                        client.on("connected", function () {
-                                node.sendStatus("green", "Connected");
-                                var paths = [];
-                                client.getDirectory()
-                                        .then(() => client.expand(client.root.getElementByNumber(0)))
-                                        .then(() => client.root.elements.forEach(function (v1, k1) {
-                                                if (typeof v1.elements === "object") {
-                                                        v1.elements.forEach(function (v2, k2) {
-                                                                if (typeof v2.elements === "object") {
-                                                                        v2.elements.forEach(function (v3, k3) {
-                                                                                if (typeof v3.elements === "object") {
-                                                                                        v3.elements.forEach(function (v4, k4) {
-                                                                                                if (typeof v4.elements === "object") {
-                                                                                                        v4.elements.forEach(function (v5, k5) {
-                                                                                                                paths.push({ "path": v5.path, "id": v5.path + ":/" + v5.contents.identifier + "->" + (v5.contents.description ? v5.contents.description : v5.contents.value) });
-                                                                                                        });
-                                                                                                } else {
-                                                                                                        paths.push({ "path": v4.path, "id": v4.path + ":/" + v1.contents.identifier + "/" + v2.contents.identifier + "/" + v3.contents.identifier + "/" + v4.contents.identifier + " (" + (v3.contents.description ? v3.contents.description : v3.contents.value) + ")" });
-                                                                                                }
-                                                                                        });
-                                                                                } else {
-                                                                                        paths.push({ "path": v3.path, "id": v3.path + ":/" + v1.contents.identifier + "/" + v2.contents.identifier + "/" + v3.contents.identifier + " (" + (v3.contents.description ? v3.contents.description : v3.contents.value) + ")" });
-                                                                                }
-                                                                        });
-                                                                } else {
-                                                                        paths.push({ "path": v2.path, "id": v2.path + ":/" + v1.contents.identifier + "/" + v2.contents.identifier + " (" + (v2.contents.description ? v2.contents.description : v2.contents.value) + ")" });
-                                                                }
-                                                        });
-                                                }
-                                        })
-                                        )
-                                        .then(() => {
-                                                global.paths = paths; node.paths = paths;
-                                                node.sendStatus("green", "Connected");
-                                                node.emit("clientready", node.paths, client);
-                                        })
-                                        .catch((e) => {
-                                                console.log(e.stack);
-                                        })
-                        });
-                        client.on("disconnected", function () {
+                        client.on("disconnected", () => {
                                 node.sendStatus("red", "Disconnected");
                                 if (!node.shutdown) {
-                                        reconnect();
+                                        setTimeout(() => reconnect().catch(e => console.log(e)), reconnectDelay);
                                 }
                         });
-                        client.connect()
-                                .catch((e) => {
-                                        console.log(e.stack);
-                                });
+                        client.on("connected", () => {
+                                node.sendStatus("green", "Connected");                                
+                        });
+                        try {
+                                await client.connectAsync();
+                                
+                                if (node.configPaths.length) {
+                                        for(const path of node.configPaths) {
+                                                await getPath(path);
+                                        }
+                                } else {
+                                        await getCompleteTree();
+                                }                                
+                                node.emit("clientready", node.paths, client);
+                        } catch(e) {
+                                console.log(e);
+                                setTimeout(() => reconnect().catch(e => console.log(e)), reconnectDelay);
+                        }
                 }
                 //On redeploy
                 node.on("close", function () {
@@ -101,7 +113,7 @@ module.exports = function (RED) {
                         node.client.disconnect();
                 });
 
-                reconnect(node.host, node.port);
+                reconnect().catch(e => console.log(e));
         }
         RED.httpAdmin.get('/emberplus/:node/paths', RED.auth.needsPermission('emberplus.read'), (req, res) => {
                 var node = RED.nodes.getNode(req.params.node);

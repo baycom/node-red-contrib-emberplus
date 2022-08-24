@@ -66,9 +66,10 @@
         <label for="node-input-outputMode"><i class="icon-tag"></i> Output Mode:</label>
         <select id="node-input-outputMode">
             <option value=""></option>
-            <option value="value">Output plain value</option>
-            <option value="contents">Output contents object</option>
-            <option value="full">Output full object</option>
+            <option value="value">Output Ember parameter value</option>
+            <option value="json">Output json Ember node</option>
+            <option value="contents">Output Ember node contents</option>
+            <option value="full">Output full Ember node</option>
         </select>
     </div>
     <div class="form-row">
@@ -79,5 +80,48 @@
 </script>
 
 <script type="text/html" data-help-name="ember+">
-    <p>A node that sends or receives Ember+ states.</p>
+    <p>A newtwork node that connects to a Ember+ device.</p>
+    <h3>Inputs</h3>
+    <ol class="node-ports">
+        <li>Ember Parameter input
+            <dt>payload
+                <span class="property-type">string</span>
+            </dt>
+            <dd> A string that will be used to SET the value of the device parameter.  </dd>
+        </li>
+        <li>Ember Function input
+            <dt>payload
+                <span class="property-type">object | string</span>
+            </dt>
+            <dd> A JavaScript object or JSON string.</dd>            
+        </li>
+    </ol>
+    <h3>Outputs</h3>
+    <ol class="node-ports">
+        <li>Parameter output
+            <dl class="message-properties">
+                <dt>payload <span class="property-type">string</span></dt>
+                <dd>the value of the parameter.</dd>
+            </dl>
+        </li>
+        <li>Function output
+            <dl class="message-properties">
+                <dt>payload <span class="property-type">object</span></dt>
+                <dd>A JavaScript object containing the result of the function call.</dd>
+            </dl>
+        </li>
+    </ol>
+    <h3>Details</h3>
+    <p><code>msg.payload</code> is used as a string to set the value of the parameter in case of Ember Parameter.
+        For an Ember Function, it should contain the list of arguments to pass to the function.
+        It can be in the form of a string that will be converted to a javascript object.
+        Or you can pass a JSON object directly in <code>msg.payload.args</code>.</p>
+    <p>Each argument should have a type and a value. ie: <code>{"type": 1, value: 88}</code></p>
+    <p>The argument types are <code>1: integer,  2: real, 3: string, 4: bool, 5: trigger, 6: enum, 7: octets</code></p>
+    <p>The output for a function is the result of the function call. It is a javascript object like <code>{"invocationId":5,"success":true,"result":[{"type":"integer","value":105}]}</code></p>
+
+    <h3>References</h3>
+    <ul>
+        <li><a>https://github.com/dufourgilles/node-red-contrib-emberplus</a> - the nodes github repository</li>
+    </ul>
 </script>

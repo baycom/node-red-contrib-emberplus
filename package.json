@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-emberplus",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "description": "Interface to Ember+ automation standard",
   "main": "index.js",
   "scripts": {
@@ -18,7 +18,7 @@
   ],
   "license": "GPL-3.0-or-later",
   "dependencies": {
-    "node-emberplus": "git+https://github.com/olzzon/node-emberplus.git"
+    "node-emberplus": "^3.0.3"
   },
   "node-red": {
     "nodes": {
